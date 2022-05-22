@@ -3,7 +3,7 @@ import torch.nn.functional as F
 
 
 class Conv():
-    def __init__(self, kernel, padding=(0, 0), bias=0,):
+    def __init__(self, kernel, padding=(0, 0), bias=0):
         '''
         初始化卷积层
         :param kernel: (num,channels,row,cols) channels 对应上一层通道数 num对应下一层通道数
@@ -15,6 +15,8 @@ class Conv():
         self.bias = torch.ones(kernel[0]) * bias
         self.gradient_w = torch.zeros(*kernel)  # 指定参数尺寸
         self.gradient_bias = torch.zeros(self.bias.size())
+        self.bach_size = None
+        self.input_mat = None
 
     def forward(self, x: torch.tensor):
         '''
@@ -22,7 +24,8 @@ class Conv():
         :param x:  （batch,channels,rows,cols)
         :return:
         '''
-        # Todo add stride
+        self.bach_size = x.size()[0]
+        self.input_mat = x
         output = torch.zeros(*x.size())
         padding_mat = F.pad(x, [self.padding[0], self.padding[0],
                                 self.padding[1], self.padding[1]], mode='constant', value=0)  # padding 先后顺序不影响
@@ -38,37 +41,35 @@ class Conv():
                     for j in range(cols - kernel_col + 1):
                         output[batch, :, i, j] = torch.sum(
                             # Kernel (num,channels,row,cols)
-                            padding_mat[batch, :, i:i + kernel_row, j:j + kernel_col] * self.kernel[num, :, :, :]
-                            + self.bias[num]
-                        )
+                            padding_mat[batch, :, i:i + kernel_row, j:j + kernel_col] * self.kernel[num, :, :, :])\
+                                                 + self.bias[num]
+
         return output
 
     def backward(self, delta):
 
         # 初始化
-        self.gradient_w = torch.zeros(self.gradient_w.size())
-        self.gradient_bias = torch.zeros(self.gradient_bias.size())
 
-        # 求解参数梯度
-
+        self.gradient_w = torch.zeros(self.gradient_w)
+        self.gradient_bias = torch.zeros(self.gradient_bias)
 
 
-        # 求解偏置梯度
 
         # 翻转卷积核
         rot_w = torch.rot90(self.kernel, k=2, dims=[2, 3])  # 旋转180
 
         kernel_row = self.kernel.size()[2]
         kernel_col = self.kernel.size()[3]
+        kernel = torch.swapaxes(rot_w,0,1)
         padding_mat = F.pad(delta, [kernel_row - 1, kernel_row - 1,
                                     kernel_col - 1, kernel_col - 1], mode='constant', value=0)
         rows = 2 * kernel_row - 1 + delta.size[2]
         cols = 2 * kernel_col - 1 + delta.size[3]
 
-        kernel = torch.swapaxes(rot_w, 0, 1)
         # 求解l-1层梯度
         delta_last = torch.zeros((delta.size[0], kernel.size[1], rows, cols))
-        for batch in range(delta_last.size()[0]):
+
+        for batch in range(self.bach_size):
             for num in range(self.kernel.size()[0]):
                 for i in range(rows - kernel_row + 1):
                     for j in range(cols - kernel_col + 1):
@@ -76,7 +77,31 @@ class Conv():
                             # Kernel (num,channels,row,cols)
                             padding_mat[batch, :, i:i + kernel_row, j:j + kernel_col] * kernel[num, :, :, :])
 
+        delta_last = delta_last[:,:,
+                     self.padding[0]:-self.padding[0],
+                     self.padding[1]: -self.padding[1]]
 
+        # 求解参数梯度
+        swap_input = torch.swapaxes(self.input_mat, 0, 1)
+        rows_2 = swap_input.size()[2]
+        cols_2 = swap_input.size()[3]
+        kernel_row_2 = padding_mat.size()[2]
+        kernel_col_2 = padding_mat.size()[3]
+        for batch in range(self.bach_size):
+            for num in range(padding_mat.size()[1]):
+                for i in range(rows_2-kernel_row_2+1):
+                    for j in range(cols_2-kernel_col_2+1):
+                        self.gradient_w[batch,:,i,j] = torch.sum(
+                            swap_input[batch,:,i:i+kernel_row_2,j:j+kernel_col_2]*padding_mat[num,:,:,:]
+                        )
+
+        self.gradient_w /= self.batch_size
+
+        # 求解偏置梯度
+        self.gradient_bias = torch.sum(torch.sum(torch.sum(delta, dim=-1), dim=-1), dim=0)
+        self.gradient_bias /= self.batch_size
+
+        # 防止梯度消失
         self.gradient_bias += 1e-9
         self.gradient_w += 1e-9
         return delta_last
