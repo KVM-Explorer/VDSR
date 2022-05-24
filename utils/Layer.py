@@ -26,9 +26,10 @@ class Conv():
         '''
         self.batch_size = x.size()[0]
         self.input_mat = x
-        output = torch.zeros(*x.size())
+        output = torch.zeros(*x.size(),dtype=torch.float32)
         padding_mat = F.pad(x, [self.padding[0], self.padding[0],
-                                self.padding[1], self.padding[1]], mode='constant', value=0)  # padding 先后顺序不影响
+                                self.padding[1], self.padding[1]],
+                            mode='constant', value=0)  # padding 先后顺序不影响
 
         rows = padding_mat.size()[2]
         cols = padding_mat.size()[3]
@@ -83,17 +84,20 @@ class Conv():
 
         # 求解参数梯度
         swap_input = torch.swapaxes(self.input_mat, 0, 1)
-        rows_2 = swap_input.size()[2]
-        cols_2 = swap_input.size()[3]
-        kernel_row_2 = padding_mat.size()[2]
-        kernel_col_2 = padding_mat.size()[3]
+        padding_swap_input = F.pad(swap_input,
+                                   [self.padding[0], self.padding[0],self.padding[1], self.padding[1]],
+                                   mode='constant',value=0)
+        rows_2 = padding_swap_input.size()[2]
+        cols_2 = padding_swap_input.size()[3]
+        kernel_row_2 = delta.size()[2]
+        kernel_col_2 = delta.size()[3]
         # Todo 重新推到公式 循环体越界未执行
         for batch in range(self.batch_size):
-            for num in range(padding_mat.size()[1]):
+            for num in range(delta.size()[1]):
                 for i in range(rows_2-kernel_row_2+1):
                     for j in range(cols_2-kernel_col_2+1):
                         self.gradient_w[batch,:,i,j] = torch.sum(
-                            swap_input[batch,:,i:i+kernel_row_2,j:j+kernel_col_2]*padding_mat[num,:,:,:]
+                            padding_swap_input[batch,:,i:i+kernel_row_2,j:j+kernel_col_2]*delta[num,:,:,:]
                         )
 
         self.gradient_w /= self.batch_size
