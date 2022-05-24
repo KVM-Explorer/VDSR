@@ -63,11 +63,11 @@ class Conv():
         kernel = torch.swapaxes(rot_w,0,1)
         padding_mat = F.pad(delta, [kernel_row - 1, kernel_row - 1,
                                     kernel_col - 1, kernel_col - 1], mode='constant', value=0)
-        rows = 2 * kernel_row - 2 + delta.size()[2]
-        cols = 2 * kernel_col - 2 + delta.size()[3]
+        rows = 2 * kernel_row - 2 + delta.size()[2] # 扩充完毕的行
+        cols = 2 * kernel_col - 2 + delta.size()[3] # 扩充完毕的列
 
         # 求解l-1层梯度
-        delta_last = torch.zeros((delta.size()[0], kernel.size()[1], rows, cols))
+        delta_last = torch.zeros((delta.size()[0], kernel.size()[1],rows - kernel_row + 1 , cols - kernel_col + 1))
 
         for batch in range(self.batch_size):
             for num in range(self.kernel.size()[0]):
@@ -87,6 +87,7 @@ class Conv():
         cols_2 = swap_input.size()[3]
         kernel_row_2 = padding_mat.size()[2]
         kernel_col_2 = padding_mat.size()[3]
+        # Todo 重新推到公式 循环体越界未执行
         for batch in range(self.batch_size):
             for num in range(padding_mat.size()[1]):
                 for i in range(rows_2-kernel_row_2+1):
