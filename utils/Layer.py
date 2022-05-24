@@ -11,11 +11,11 @@ class Conv():
         :param stride:
         '''
         self.padding = padding
-        self.kernel = torch.rand(*kernel)
+        self.kernel = torch.rand(*kernel,dtype=torch.float32)
         self.bias = torch.ones(kernel[0]) * bias
-        self.gradient_w = torch.zeros(*kernel)  # 指定参数尺寸
-        self.gradient_bias = torch.zeros(self.bias.size())
-        self.bach_size = None
+        self.gradient_w = torch.zeros(*kernel,dtype=torch.float32)  # 指定参数尺寸
+        self.gradient_bias = torch.zeros(self.bias.size(),dtype=torch.float32)
+        self.batch_size = None
         self.input_mat = None
 
     def forward(self, x: torch.tensor):
@@ -24,7 +24,7 @@ class Conv():
         :param x:  （batch,channels,rows,cols)
         :return:
         '''
-        self.bach_size = x.size()[0]
+        self.batch_size = x.size()[0]
         self.input_mat = x
         output = torch.zeros(*x.size())
         padding_mat = F.pad(x, [self.padding[0], self.padding[0],
@@ -50,8 +50,8 @@ class Conv():
 
         # 初始化
 
-        self.gradient_w = torch.zeros(self.gradient_w)
-        self.gradient_bias = torch.zeros(self.gradient_bias)
+        self.gradient_w = torch.full(self.gradient_w.size(),0.0)
+        self.gradient_bias = torch.full(self.gradient_bias.size(),0.0)
 
 
 
@@ -63,13 +63,13 @@ class Conv():
         kernel = torch.swapaxes(rot_w,0,1)
         padding_mat = F.pad(delta, [kernel_row - 1, kernel_row - 1,
                                     kernel_col - 1, kernel_col - 1], mode='constant', value=0)
-        rows = 2 * kernel_row - 1 + delta.size[2]
-        cols = 2 * kernel_col - 1 + delta.size[3]
+        rows = 2 * kernel_row - 2 + delta.size()[2]
+        cols = 2 * kernel_col - 2 + delta.size()[3]
 
         # 求解l-1层梯度
-        delta_last = torch.zeros((delta.size[0], kernel.size[1], rows, cols))
+        delta_last = torch.zeros((delta.size()[0], kernel.size()[1], rows, cols))
 
-        for batch in range(self.bach_size):
+        for batch in range(self.batch_size):
             for num in range(self.kernel.size()[0]):
                 for i in range(rows - kernel_row + 1):
                     for j in range(cols - kernel_col + 1):
@@ -87,7 +87,7 @@ class Conv():
         cols_2 = swap_input.size()[3]
         kernel_row_2 = padding_mat.size()[2]
         kernel_col_2 = padding_mat.size()[3]
-        for batch in range(self.bach_size):
+        for batch in range(self.batch_size):
             for num in range(padding_mat.size()[1]):
                 for i in range(rows_2-kernel_row_2+1):
                     for j in range(cols_2-kernel_col_2+1):
