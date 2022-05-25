@@ -20,7 +20,7 @@ def train(data, model: Net.VDSR, epochs, optimizer: Optimizer.SGD, batch_size=16
             ret = model.forward(train_x_batch)
             delta, loss = optimizer.solve(ret, train_y_batch)
             model.backward(delta)
-            optimizer.update(model)
+            model = optimizer.update(model)
 
         loss = valid(data=(valid_x, valid_y), model=model, optimizer=optimizer)
         print(f"epoch:{i}/{epochs} loss:{loss}")
@@ -35,3 +35,4 @@ def valid(data, model: Net.VDSR, optimizer: Optimizer.SGD):
         total_loss += loss
 
     total_loss /= tot_num
+    return  total_loss

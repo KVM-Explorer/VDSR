@@ -10,13 +10,17 @@ class DataLoader():
         self.root = path
 
     def load_image(self):
+        '''
+        以灰度图加载
+        :return:
+        '''
         x = []
         y = []
         file_list = os.listdir(os.path.join(self.root, "train_data"))
         train_path = os.path.join(self.root, "train_data")
         for filename in file_list:
             path = os.path.join(train_path,filename)
-            image = cv2.imread(path)
+            image = cv2.imread(path,flags=cv2.IMREAD_GRAYSCALE)
             x.append(image)
         x = numpy.array(x)
 
@@ -24,7 +28,7 @@ class DataLoader():
         train_path = os.path.join(self.root, "train_label")
         for filename in file_list:
             path = os.path.join(train_path,filename)
-            image = cv2.imread(path)
+            image = cv2.imread(path,flags=cv2.IMREAD_GRAYSCALE)
             y.append(image)
         y = numpy.array(y)
 
