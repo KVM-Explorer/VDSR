@@ -1,7 +1,8 @@
 import cv2
 import numpy
 import torch
-
+import logging
+logging.basicConfig(level=logging.DEBUG, format=' %(asctime)s -%(levelname)s - %(message)s')
 
 def normalize(x:numpy.ndarray, dsize):
     '''
@@ -19,5 +20,5 @@ def normalize(x:numpy.ndarray, dsize):
     ret = numpy.array(ret)
     ret = torch.tensor(ret, dtype=torch.float32)
     ret = torch.permute(ret, [0, 3, 1, 2])
-    print(f"- PreProcess finished")
+    logging.debug("PreProcess finished")
     return ret
