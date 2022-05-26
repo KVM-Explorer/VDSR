@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
-
-
+import logging
+logging.basicConfig(level=logging.DEBUG, format=' %(asctime)s -%(levelname)s - %(message)s')
 class Conv():
     def __init__(self, kernel=(1,1,3,3), padding=(0, 0), bias=0):
         '''
@@ -11,10 +11,10 @@ class Conv():
         :param stride:
         '''
         self.padding = padding
-        self.kernel = torch.rand(*kernel,dtype=torch.float32)
-        self.bias = torch.ones(kernel[0]) * bias
-        self.gradient_w = torch.zeros(*kernel,dtype=torch.float32)  # 指定参数尺寸
-        self.gradient_bias = torch.zeros(self.bias.size(),dtype=torch.float32)
+        self.kernel = torch.rand(*kernel,dtype=torch.float32,device=torch.device('cuda'))
+        self.bias = torch.ones(kernel[0],device=torch.device('cuda')) * bias
+        self.gradient_w = torch.zeros(*kernel,dtype=torch.float32,device=torch.device('cuda'))  # 指定参数尺寸
+        self.gradient_bias = torch.zeros(self.bias.size(),dtype=torch.float32,device=torch.device('cuda'))
         self.batch_size = None
         self.input_mat = None
 
@@ -24,9 +24,11 @@ class Conv():
         :param x:  （batch,channels,rows,cols)
         :return:
         '''
+        # logging.debug("开始单次正向传播")
         self.batch_size = x.size()[0]
         self.input_mat = x
-        output = torch.zeros(*x.size(),dtype=torch.float32)
+        output = torch.zeros(*x.size(),dtype=torch.float32,device=torch.device('cuda'))
+        # logging.debug("开始padding填充")
         padding_mat = F.pad(x, [self.padding[0], self.padding[0],
                                 self.padding[1], self.padding[1]],
                             mode='constant', value=0)  # padding 先后顺序不影响
@@ -36,7 +38,9 @@ class Conv():
         kernel_row = self.kernel.size()[2]
         kernel_col = self.kernel.size()[3]
 
+        # logging.debug("正向传播卷积计算")
         for batch in range(x.size()[0]):
+            # logging.debug("开始循环batch")
             for num in range(self.kernel.size()[0]):
                 for i in range(rows - kernel_row + 1):
                     for j in range(cols - kernel_col + 1):
@@ -117,7 +121,7 @@ class Relu():
         self.x = None
 
     def forward(self, x):
-        zero = torch.zeros_like(x)
+        zero = torch.zeros_like(x,device=torch.device('cuda'))
         return torch.maximum(x, zero)
 
     def backward(self, delta):
