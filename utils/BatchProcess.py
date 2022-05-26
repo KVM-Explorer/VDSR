@@ -5,11 +5,12 @@ import utils.Net as Net
 def train(data, model: Net.VDSR, epochs, optimizer: Optimizer.SGD, batch_size=16, ratio=0.7):
     x, y = data
     # 分配数据集
-    train_x = x[:ratio * len(x), :, :, :]
-    valid_x = x[ratio * len(x):, :, :, :]
+    data_gap = int(ratio * len(x))
+    train_x = x[:data_gap, :, :, :]
+    valid_x = x[data_gap:, :, :, :]
 
-    train_y = y[:ratio * len(x), :, :, :]
-    valid_y = y[ratio * len(x):, :, :, :]
+    train_y = y[:data_gap, :, :, :]
+    valid_y = y[data_gap:, :, :, :]
 
     # epoch
     for i in range(epochs):

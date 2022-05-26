@@ -21,6 +21,7 @@ class DataLoader():
         for filename in file_list:
             path = os.path.join(train_path,filename)
             image = cv2.imread(path,flags=cv2.IMREAD_GRAYSCALE)
+            image = numpy.reshape(image,(image.shape[0],image.shape[1],1))  # 灰度确实一个通道，标准化
             x.append(image)
         x = numpy.array(x)
 
@@ -29,10 +30,11 @@ class DataLoader():
         for filename in file_list:
             path = os.path.join(train_path,filename)
             image = cv2.imread(path,flags=cv2.IMREAD_GRAYSCALE)
+            image = numpy.reshape(image, (image.shape[0], image.shape[1], 1))  # 灰度确实一个通道，标准化
             y.append(image)
         y = numpy.array(y)
 
-        return torch.tensor(x,dtype=torch.float32), torch.tensor(y,dtype=torch.float32)
+        return x, y
 
     def load_preproces(self,path):
         return torch.load(os.path.join(path,"data.h5"))

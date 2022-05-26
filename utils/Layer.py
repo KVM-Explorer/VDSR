@@ -3,7 +3,7 @@ import torch.nn.functional as F
 
 
 class Conv():
-    def __init__(self, kernel, padding=(0, 0), bias=0):
+    def __init__(self, kernel=(1,1,3,3), padding=(0, 0), bias=0):
         '''
         初始化卷积层
         :param kernel: (num,channels,row,cols) channels 对应上一层通道数 num对应下一层通道数
@@ -117,8 +117,8 @@ class Relu():
         self.x = None
 
     def forward(self, x):
-        self.x = x
-        return torch.maximum(x, 0)
+        zero = torch.zeros_like(x)
+        return torch.maximum(x, zero)
 
     def backward(self, delta):
         ret = torch.clamp(delta, min=0)  # 截断小于0的值
