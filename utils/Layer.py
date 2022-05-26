@@ -55,8 +55,8 @@ class Conv():
 
         # 初始化
 
-        self.gradient_w = torch.full(self.gradient_w.size(),0.0)
-        self.gradient_bias = torch.full(self.gradient_bias.size(),0.0)
+        self.gradient_w = torch.full(self.gradient_w.size(),0.0,device=torch.device('cuda'))
+        self.gradient_bias = torch.full(self.gradient_bias.size(),0.0,device=torch.device('cuda'))
 
 
 
@@ -72,36 +72,41 @@ class Conv():
         cols = 2 * kernel_col - 2 + delta.size()[3] # 扩充完毕的列
 
         # 求解l-1层梯度
-        delta_last = torch.zeros((delta.size()[0], kernel.size()[1],rows - kernel_row + 1 , cols - kernel_col + 1))
+        delta_last = torch.zeros((delta.size()[0], kernel.size()[1],
+                                  rows - kernel_row + 1 , cols - kernel_col + 1),
+                                 device=torch.device('cuda'))
 
-        for batch in range(self.batch_size):
-            for num in range(self.kernel.size()[0]):
-                for i in range(rows - kernel_row + 1):
-                    for j in range(cols - kernel_col + 1):
-                        delta_last[batch, :, i, j] = torch.sum(
-                            # Kernel (num,channels,row,cols)
-                            padding_mat[batch, :, i:i + kernel_row, j:j + kernel_col] * kernel[num, :, :, :])
+        for batch in range(self.batch_size):  # batch
+            for i in range(rows - kernel_row + 1):
+                for j in range(cols - kernel_col + 1):
+                    delta_last[batch, :, i, j] = torch.sum(
+                        # Kernel (num,channels,row,cols)
+                        padding_mat[batch, :, i:i + kernel_row, j:j + kernel_col] * kernel)
 
         delta_last = delta_last[:,:,
                      self.padding[0]:-self.padding[0],
                      self.padding[1]: -self.padding[1]]
 
         # 求解参数梯度
+        # 交换input和delta 通道数目
         swap_input = torch.swapaxes(self.input_mat, 0, 1)
+        row_padding = self.kernel.size()[2]//2
+        col_padding = self.kernel.size()[3]//2
         padding_swap_input = F.pad(swap_input,
-                                   [self.padding[0], self.padding[0],self.padding[1], self.padding[1]],
-                                   mode='constant',value=0)
+                                   [row_padding,row_padding,col_padding,col_padding],
+                                   mode='constant',value=0) # input with padding
         rows_2 = padding_swap_input.size()[2]
         cols_2 = padding_swap_input.size()[3]
         kernel_row_2 = delta.size()[2]
         kernel_col_2 = delta.size()[3]
-        # Todo 重新推到公式 循环体越界未执行
-        for batch in range(self.batch_size):
-            for num in range(delta.size()[1]):
+
+
+        for u in range(padding_swap_input.size()[0]):
+            for v in range(delta.size()[1]):
                 for i in range(rows_2-kernel_row_2+1):
                     for j in range(cols_2-kernel_col_2+1):
-                        self.gradient_w[batch,:,i,j] = torch.sum(
-                            padding_swap_input[batch,:,i:i+kernel_row_2,j:j+kernel_col_2]*delta[num,:,:,:]
+                        self.gradient_w[u,v,i,j] = torch.sum(
+                            padding_swap_input[u,:,i:i+kernel_row_2,j:j+kernel_col_2]*delta[:,v,:,:]
                         )
 
         self.gradient_w /= self.batch_size
