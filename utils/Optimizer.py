@@ -30,6 +30,8 @@ class SGD():
 
         return model
 
+    def update_learning_rate(self,epoch):
+        self.learning_rate *= 0.95**(epoch+1)
 
 # Todo complete future
 class Adam():

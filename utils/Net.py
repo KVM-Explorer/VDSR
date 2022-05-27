@@ -21,7 +21,7 @@ class VDSR():
         self.layers.append(Layer.Relu())
 
     def forward(self, initial_data):
-        logging.info("Forward")
+        logging.debug("Forward")
         x = initial_data
         level = 0
 
@@ -34,7 +34,7 @@ class VDSR():
         return output
 
     def backward(self, delta):
-        logging.info("backward")
+        logging.debug("backward")
         x = delta
         level = len(self.layers) + 1
         self.layers.reverse()

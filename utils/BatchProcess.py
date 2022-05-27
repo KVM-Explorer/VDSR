@@ -18,7 +18,7 @@ def train(data, model: Net.VDSR, epochs, optimizer: Optimizer.SGD, batch_size=16
     valid_y = y[data_gap:, :, :, :]
 
     # epoch
-    for i in range(epochs):
+    for epoch in range(epochs):
         # batch
         for j in range(0, len(train_x), batch_size):
             train_x_batch = train_x[j:min(len(train_x), j + batch_size)]
@@ -30,8 +30,10 @@ def train(data, model: Net.VDSR, epochs, optimizer: Optimizer.SGD, batch_size=16
             model = optimizer.update(model)
 
         loss = valid(data=(valid_x, valid_y), model=model, optimizer=optimizer)
-        logging.info(f"epoch:{i}/{epochs} loss:{loss}")
+        optimizer.update_learning_rate(epoch)
+        logging.info(f"epoch:{epoch}/{epochs} loss:{loss} learning_rate:{optimizer.learning_rate}")
     return model
+
 
 def valid(data, model: Net.VDSR, optimizer: Optimizer.SGD):
     logging.info("=================Start valid==================")
