@@ -41,7 +41,7 @@ def test_normalize(image_group, dsize):
 
 def reverse_data(x: torch.tensor):
     '''
-    反转模型输出为单张图片
+    反转模型输出为单张图片,并添加到numpy数组
     :param x:
     :return:
     '''
@@ -62,3 +62,11 @@ def data_to_image(data: numpy):
     batch, rows, cols, channels = data.shape
     image = cv2.merge([data[0,:,:,:],data[1,:,:,:],data[2,:,:,:]])
     return image
+
+def get_dynamic_range(data: numpy.ndarray):
+    global_range = [] #min max
+    for single in data:
+        local_max = numpy.max(single)
+        local_min = numpy.min(single)
+        global_range.append((local_min,local_max))
+    return global_range
