@@ -48,5 +48,4 @@ class Adam():
 
     def update(self, model: Net.VDSR):
         # Todo 更新模型参数
-
         return model
